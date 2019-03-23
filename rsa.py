@@ -221,7 +221,7 @@ class RsaObject(object):
             decrypted_data += M
         decrypted_data = huffman_decompress(decrypted_data, self.comp_keys)
         end = clock()
-        file_handle = open('decrypted_data', 'w')
+        file_handle = open('decrypted_data.txt', 'w')
         file_handle.write(decrypted_data)
         file_handle.close()
         details_file_handle = open('details.txt', 'a')
