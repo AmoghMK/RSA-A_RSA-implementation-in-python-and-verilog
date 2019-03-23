@@ -1,5 +1,6 @@
 from random import getrandbits
 from time import clock
+from huff import *
 
 
 def generate_random_number(length, make_odd=True):
@@ -47,6 +48,13 @@ def read_file(file_name):
     return data
 
 
+def aug_read_file(file_name):
+    file_handle = open(file_name, 'r')
+    file_content = file_handle.read()
+    file_handle.close()
+    return huffman_compress(file_content)
+
+
 def write_file(file_name, data):
     data_to_write = ''
     i = 0
@@ -68,6 +76,7 @@ class RsaObject(object):
     d = None
     n_length = None
     spill_over = None
+    comp_keys = None
 
     def __init__(self, length):
         self.length = length
@@ -142,6 +151,36 @@ class RsaObject(object):
         details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
         details_file_handle.close()
 
+    def aug_encrypt(self, file_name):
+        input_comp_data, self.comp_keys = aug_read_file(file_name)
+        start = clock()
+        encrypted_data = ''
+        i = 0
+        while i < len(input_comp_data):
+            M = int(input_comp_data[i:i + self.n_length], 2)
+            i = i + self.n_length
+            C = format(pow(M, self.e, self.n), 'b')
+            encrypted_data += '0' * (self.length - len(C)) + C
+        if i != len(input_comp_data):
+            M = int(input_comp_data[i - self.n_length:], 2)
+            self.spill_over = (self.n_length - (i - len(input_comp_data)))
+            C = format(pow(M, self.e, self.n), 'b')
+            encrypted_data += '0' * (self.length - len(C)) + C
+        end = clock()
+        write_file('encrypted_data.txt', encrypted_data)
+        encrypted_file_handle = open('encrypted_data_binary.txt', 'w')
+        encrypted_file_handle.write(encrypted_data)
+        encrypted_file_handle.close()
+        details_file_handle = open('details.txt', 'w')
+        details_file_handle.write('length of input data = ' + str(len(input_comp_data)) + ' bits\n')
+        details_file_handle.write('length of encrypted data = ' + str(len(encrypted_data)) + ' bits\n')
+        percentage_increase = (len(encrypted_data) - len(input_comp_data)) * 100 / len(input_comp_data)
+        details_file_handle.write('percentage increase = ' + str(percentage_increase) + '%\n')
+        details_file_handle.write('\ntime for encryption = ' + str((end - start) * 1000) + ' milliseconds\n')
+        details_file_handle.write('\ninput data in bits\n' + input_comp_data)
+        details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
+        details_file_handle.close()
+
     def decrypt(self, file_name):
         file_handle = open(file_name, 'r')
         encrypted_data = file_handle.read()
@@ -164,8 +203,36 @@ class RsaObject(object):
         details_file_handle.write('\ndecrypted data in bits\n' + decrypted_data)
         details_file_handle.write('\n\ntime for decryption = ' + str((end - start)*1000) + ' milliseconds\n')
 
+    def aug_decrypt(self, file_name):
+        file_handle = open(file_name, 'r')
+        encrypted_data = file_handle.read()
+        file_handle.close()
+        start = clock()
+        decrypted_data = ''
+        i = 0
+        while i < len(encrypted_data):
+            C = int(encrypted_data[i:i + self.length], 2)
+            i = i + self.length
+            M = format(pow(C, self.d, self.n), 'b')
+            M = '0' * (self.n_length - len(M)) + M
+            if i == len(encrypted_data):
+                decrypted_data = decrypted_data[:-self.n_length]
+                M = M[-self.spill_over:]
+            decrypted_data += M
+        decrypted_data = huffman_decompress(decrypted_data, self.comp_keys)
+        end = clock()
+        file_handle = open('decrypted_data', 'w')
+        file_handle.write(decrypted_data)
+        file_handle.close()
+        details_file_handle = open('details.txt', 'a')
+        details_file_handle.write('\ndecrypted data in bits\n' + decrypted_data)
+        details_file_handle.write('\n\ntime for decryption = ' + str((end - start) * 1000) + ' milliseconds\n')
+
 
 a = RsaObject(128)
-a.encrypt('input.txt')
-a.decrypt('encrypted_data_binary.txt')
+a.aug_encrypt('input.txt')
+a.aug_decrypt('encrypted_data_binary.txt')
+
+# a.encrypt('input.txt')
+# a.decrypt('encrypted_data_binary.txt')
 exit()
