@@ -62,8 +62,7 @@ def write_file(file_name, data):
         data_to_write += chr(int(data[i:i+7], 2))
         i += 7
     file_handle = open(file_name, 'w')
-    file_handle.write(data_to_write+'\n')
-    file_handle.write(data)
+    file_handle.write(data_to_write)
     file_handle.close()
 
 
@@ -152,8 +151,9 @@ class RsaObject(object):
         details_file_handle.close()
 
     def aug_encrypt(self, file_name):
-        input_comp_data, self.comp_keys = aug_read_file(file_name)
+        input_data = read_file(file_name)
         start = clock()
+        input_comp_data, self.comp_keys = aug_read_file(file_name)
         encrypted_data = ''
         i = 0
         r = self.e
@@ -177,12 +177,12 @@ class RsaObject(object):
         encrypted_file_handle.write(encrypted_data)
         encrypted_file_handle.close()
         details_file_handle = open('details.txt', 'w')
-        details_file_handle.write('length of input data = ' + str(len(input_comp_data)) + ' bits\n')
+        details_file_handle.write('length of input data = ' + str(len(input_data)) + ' bits\n')
         details_file_handle.write('length of encrypted data = ' + str(len(encrypted_data)) + ' bits\n')
         percentage_increase = (len(encrypted_data) - len(input_comp_data)) * 100 / len(input_comp_data)
         details_file_handle.write('percentage increase = ' + str(percentage_increase) + '%\n')
         details_file_handle.write('\ntime for encryption = ' + str((end - start) * 1000) + ' milliseconds\n')
-        details_file_handle.write('\ninput data in bits\n' + input_comp_data)
+        details_file_handle.write('\ninput compressed data in bits\n' + input_comp_data)
         details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
         details_file_handle.close()
 
@@ -230,17 +230,17 @@ class RsaObject(object):
             else:
                 M = '0' * (self.spill_over - len(M)) + M
             decrypted_data = M + decrypted_data
-        decrypted_data = huffman_decompress(decrypted_data, self.comp_keys)
+        decrypted_data_decompressed = huffman_decompress(decrypted_data, self.comp_keys)
         end = clock()
         file_handle = open('decrypted_data.txt', 'w')
-        file_handle.write(decrypted_data)
+        file_handle.write(decrypted_data_decompressed)
         file_handle.close()
         details_file_handle = open('details.txt', 'a')
-        details_file_handle.write('\ndecrypted data in bits\n' + decrypted_data)
+        details_file_handle.write('\ndecrypted compressed data in bits\n' + decrypted_data)
         details_file_handle.write('\n\ntime for decryption = ' + str((end - start) * 1000) + ' milliseconds\n')
 
 
 a = RsaObject(128)
-a.aug_encrypt('Sample_FOBtest.txt')
+a.aug_encrypt('input.txt')
 a.aug_decrypt('encrypted_data_binary.txt')
 exit()
