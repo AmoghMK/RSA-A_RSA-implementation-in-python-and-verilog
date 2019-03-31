@@ -255,20 +255,14 @@ class RsaObject(object):
         input_comp_data, self.comp_keys = aug_read_file(file_name)
         encrypted_data = ''
         i = 0
-        r = self.e
-        while i < len(input_comp_data)-self.n_length:
+        while i < len(input_comp_data) - self.n_length:
             M = int(input_comp_data[i:i + self.n_length], 2)
-            M = M ^ r
             i = i + self.n_length
-            C = pow(M, self.e, self.n)
-            r = C >> (self.length-self.n_length)
-            C = format(C, 'b')
+            C = format(pow(M, self.e, self.n), 'b')
             encrypted_data += '0' * (self.length - len(C)) + C
         M = int(input_comp_data[i:], 2)
-        M = M ^ r
-        self.spill_over = len(input_comp_data)-i
-        C = pow(M, self.e, self.n)
-        C = format(C, 'b')
+        self.spill_over = len(input_comp_data) - i
+        C = format(pow(M, self.e, self.n), 'b')
         encrypted_data += '0' * (self.length - len(C)) + C
         end = clock()
         write_file('encrypted_data.txt', encrypted_data)
@@ -313,22 +307,16 @@ class RsaObject(object):
         file_handle.close()
         start = clock()
         decrypted_data = ''
-        i = len(encrypted_data)
-        while i > 0:
-            C = int(encrypted_data[i-self.length:i], 2)
-            i = i - self.length
-            M = pow(C, self.d, self.n)
-            if i == 0:
-                r = self.e
-            else:
-                r = int(encrypted_data[i-self.length:i], 2) >> (self.length-self.n_length)
-            M = M ^ r
-            M = format(M, 'b')
-            if len(decrypted_data) != 0:
+        i = 0
+        while i < len(encrypted_data):
+            C = int(encrypted_data[i:i + self.length], 2)
+            i = i + self.length
+            M = format(pow(C, self.d, self.n), 'b')
+            if i != len(encrypted_data):
                 M = '0' * (self.n_length - len(M)) + M
             else:
                 M = '0' * (self.spill_over - len(M)) + M
-            decrypted_data = M + decrypted_data
+            decrypted_data += M
         decrypted_data_decompressed = huffman_decompress(decrypted_data, self.comp_keys)
         end = clock()
         file_handle = open('decrypted_data.txt', 'w')
