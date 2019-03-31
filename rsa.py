@@ -127,16 +127,15 @@ class RsaObject(object):
         start = clock()
         encrypted_data = ''
         i = 0
-        while i < len(input_data):
+        while i < len(input_data)-self.n_length:
             M = int(input_data[i:i+self.n_length], 2)
             i = i+self.n_length
             C = format(pow(M, self.e, self.n), 'b')
             encrypted_data += '0'*(self.length-len(C)) + C
-        if i != len(input_data):
-            M = int(input_data[i-self.n_length:], 2)
-            self.spill_over = (self.n_length-(i-len(input_data)))
-            C = format(pow(M, self.e, self.n), 'b')
-            encrypted_data += '0' * (self.length - len(C)) + C
+        M = int(input_data[i:], 2)
+        self.spill_over = len(input_data)-i
+        C = format(pow(M, self.e, self.n), 'b')
+        encrypted_data += '0' * (self.length - len(C)) + C
         end = clock()
         write_file('encrypted_data.txt', encrypted_data)
         encrypted_file_handle = open('encrypted_data_binary.txt', 'w')
@@ -154,34 +153,24 @@ class RsaObject(object):
 
     def aug_encrypt(self, file_name):
         input_comp_data, self.comp_keys = aug_read_file(file_name)
-        print(input_comp_data)
         start = clock()
         encrypted_data = ''
         i = 0
         r = self.e
         while i < len(input_comp_data)-self.n_length:
             M = int(input_comp_data[i:i + self.n_length], 2)
-            print('1->', M)
-            print('2->', r)
             M = M ^ r
-            print('3->', M)
             i = i + self.n_length
             C = pow(M, self.e, self.n)
-            print('4->', C, '\n')
-            r = C
+            r = C >> (self.length-self.n_length)
             C = format(C, 'b')
             encrypted_data += '0' * (self.length - len(C)) + C
         M = int(input_comp_data[i:], 2)
-        print('1->', M)
-        print('2->', r)
         M = M ^ r
-        print('3->', M)
-        self.spill_over = (self.n_length - (i - len(input_comp_data)))
+        self.spill_over = len(input_comp_data)-i
         C = pow(M, self.e, self.n)
-        print('4->', C, '\n')
         C = format(C, 'b')
         encrypted_data += '0' * (self.length - len(C)) + C
-        print(encrypted_data)
         end = clock()
         write_file('encrypted_data.txt', encrypted_data)
         encrypted_file_handle = open('encrypted_data_binary.txt', 'w')
@@ -208,10 +197,10 @@ class RsaObject(object):
             C = int(encrypted_data[i:i+self.length], 2)
             i = i + self.length
             M = format(pow(C, self.d, self.n), 'b')
-            M = '0'*(self.n_length-len(M)) + M
-            if i == len(encrypted_data):
-                decrypted_data = decrypted_data[:-self.n_length]
-                M = M[-self.spill_over:]
+            if i != len(encrypted_data):
+                M = '0' * (self.n_length - len(M)) + M
+            else:
+                M = '0' * (self.spill_over - len(M))+M
             decrypted_data += M
         end = clock()
         write_file('decrypted_data.txt', decrypted_data)
@@ -222,30 +211,25 @@ class RsaObject(object):
     def aug_decrypt(self, file_name):
         file_handle = open(file_name, 'r')
         encrypted_data = file_handle.read()
-        print(encrypted_data)
         file_handle.close()
         start = clock()
         decrypted_data = ''
         i = len(encrypted_data)
         while i > 0:
-            print(encrypted_data[i-self.length:i])
             C = int(encrypted_data[i-self.length:i], 2)
-            print('4->', C)
             i = i - self.length
             M = pow(C, self.d, self.n)
-            print('3->', M)
             if i == 0:
                 r = self.e
             else:
-                r = int(encrypted_data[i-self.length:i], 2)
-            print('2->', r)
+                r = int(encrypted_data[i-self.length:i], 2) >> (self.length-self.n_length)
             M = M ^ r
-            print('1->', M, '\n')
             M = format(M, 'b')
             if len(decrypted_data) != 0:
                 M = '0' * (self.n_length - len(M)) + M
+            else:
+                M = '0' * (self.spill_over - len(M)) + M
             decrypted_data = M + decrypted_data
-        print(decrypted_data)
         decrypted_data = huffman_decompress(decrypted_data, self.comp_keys)
         end = clock()
         file_handle = open('decrypted_data.txt', 'w')
@@ -258,4 +242,5 @@ class RsaObject(object):
 
 a = RsaObject(128)
 a.aug_encrypt('Sample_FOBtest.txt')
+a.aug_decrypt('encrypted_data_binary.txt')
 exit()
