@@ -257,9 +257,5 @@ class RsaObject(object):
 
 
 a = RsaObject(128)
-a.aug_encrypt('input.txt')
-a.aug_decrypt('encrypted_data_binary.txt')
-
-# a.encrypt('input.txt')
-# a.decrypt('encrypted_data_binary.txt')
+a.aug_encrypt('Sample_FOBtest.txt')
 exit()
