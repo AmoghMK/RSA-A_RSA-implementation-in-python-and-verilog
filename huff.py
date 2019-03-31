@@ -31,7 +31,6 @@ def huffman_compress(message):
             return codes
 
     codes = create_codes(tree, '', {})
-    print(codes)
     key = {v: k for k, v in codes.items()}
     binary = ''.join([codes[x] for x in message])
     return binary, key

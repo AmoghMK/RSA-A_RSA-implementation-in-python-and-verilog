@@ -1,6 +1,8 @@
 from random import getrandbits
 from time import clock
 from huff import *
+import matplotlib.pyplot as plt
+plt.style.use('seaborn-whitegrid')
 
 
 def generate_random_number(length, make_odd=True):
@@ -64,6 +66,103 @@ def write_file(file_name, data):
     file_handle = open(file_name, 'w')
     file_handle.write(data_to_write)
     file_handle.close()
+
+
+def plot_encryption_decryption_details_1(details_dict, details_aug_dict):
+    encryption_time_list = []
+    decryption_time_list = []
+    aug_encryption_time_list = []
+    aug_decryption_time_list = []
+    size_list = []
+    tick_list = []
+    i = 0
+    while i < len(details_dict.keys()):
+        encryption_time_list.append(details_dict[str(10**i) + 'kB']['encryption_time'])
+        decryption_time_list.append(details_dict[str(10**i) + 'kB']['decryption_time'])
+        aug_encryption_time_list.append(details_aug_dict[str(10 ** i) + 'kB']['encryption_time'])
+        aug_decryption_time_list.append(details_aug_dict[str(10 ** i) + 'kB']['decryption_time'])
+        size_list.append(10 ** i)
+        tick_list.append(i)
+        i += 1
+    plt.subplot(2, 2, 1)
+    plt.plot(encryption_time_list, marker='o', label='RSA')
+    plt.plot(aug_encryption_time_list, marker='o', label='A-RSA')
+    plt.title('Time for encryption')
+    plt.legend(loc=2)
+    plt.xticks(tick_list, size_list)
+    plt.ylabel('time (in ms)')
+    plt.xlabel('size of input file (in kB)')
+    plt.subplot(2, 2, 2)
+    plt.plot(size_list, encryption_time_list, marker='o', label='RSA')
+    plt.plot(size_list, aug_encryption_time_list, marker='o', label='A-RSA')
+    plt.title('Time for encryption')
+    plt.legend(loc=2)
+    plt.ylabel('time (in ms)')
+    plt.xlabel('size of input file (in kB)')
+    plt.subplot(2, 2, 3)
+    plt.plot(decryption_time_list, marker='o', label='RSA')
+    plt.plot(aug_decryption_time_list, marker='o', label='A-RSA')
+    plt.title('Time for decryption')
+    plt.legend(loc=2)
+    plt.xticks(tick_list, size_list)
+    plt.ylabel('time (in ms)')
+    plt.xlabel('size of input file (in kB)')
+    plt.subplot(2, 2, 4)
+    plt.plot(size_list, decryption_time_list, marker='o', label='RSA')
+    plt.plot(size_list, aug_decryption_time_list, marker='o', label='A-RSA')
+    plt.title('Time for decryption')
+    plt.legend(loc=2)
+    plt.ylabel('time (in ms)')
+    plt.xlabel('size of input file (in kB)')
+    plt.show()
+
+
+def plot_encryption_decryption_details_2(details_dict, details_aug_dict):
+    input_data_size_list = []
+    encrypted_data_size_list = []
+    percentage_increase_list = []
+    aug_input_data_size_list = []
+    aug_encrypted_data_size_list = []
+    aug_percentage_increase_list = []
+    size_list = []
+    tick_list = []
+    i = 0
+    while i < len(details_dict.keys()):
+        input_data_size_list.append(details_dict[str(10 ** i) + 'kB']['input_data_size'])
+        encrypted_data_size_list.append(details_dict[str(10 ** i) + 'kB']['encrypted_data_size'])
+        percentage_increase_list.append(details_dict[str(10 ** i) + 'kB']['percentage_increase'])
+        aug_input_data_size_list.append(details_aug_dict[str(10 ** i) + 'kB']['input_data_size'])
+        aug_encrypted_data_size_list.append(details_aug_dict[str(10 ** i) + 'kB']['encrypted_data_size'])
+        aug_percentage_increase_list.append(details_aug_dict[str(10 ** i) + 'kB']['percentage_increase'])
+        size_list.append(10 ** i)
+        tick_list.append(i)
+        i += 1
+    plt.subplot(2, 2, 1)
+    plt.plot(size_list, input_data_size_list, marker='o', label='input')
+    plt.plot(size_list, encrypted_data_size_list, marker='o', label='encrypted-RSA')
+    plt.plot(size_list, aug_encrypted_data_size_list, marker='o', label='encrypted-A-RSA')
+    plt.title('Size of input and encrypted files')
+    plt.legend(loc=2)
+    plt.ylabel('size (in bits)')
+    plt.xlabel('size of input file (in kB)')
+    plt.subplot(2, 2, 2)
+    plt.plot(input_data_size_list, marker='o', label='input')
+    plt.plot(encrypted_data_size_list, marker='o', label='encrypted-RSA')
+    plt.plot(aug_encrypted_data_size_list, marker='o', label='encrypted-A-RSA')
+    plt.title('Size of input and encrypted files')
+    plt.legend(loc=2)
+    plt.xticks(tick_list, size_list)
+    plt.ylabel('size (in bits)')
+    plt.xlabel('size of input file (in kB)')
+    plt.subplot(2, 2, 3)
+    plt.plot(percentage_increase_list, marker='o', label='RSA')
+    plt.plot(aug_percentage_increase_list, marker='o', label='A-RSA')
+    plt.title('Percentage increase in size from input to encrypted data')
+    plt.legend(loc=5)
+    plt.xticks(tick_list, size_list)
+    plt.ylabel('Percentage increase (%)')
+    plt.xlabel('size of input file (in kB)')
+    plt.show()
 
 
 class RsaObject(object):
@@ -144,7 +243,7 @@ class RsaObject(object):
         details_file_handle.write('length of input data = ' + str(len(input_data)) + ' bits\n')
         details_file_handle.write('length of encrypted data = ' + str(len(encrypted_data)) + ' bits\n')
         percentage_increase = (len(encrypted_data)-len(input_data))*100/len(input_data)
-        details_file_handle.write('percentage increase = ' + str(percentage_increase) + '%\n')
+        details_file_handle.write('percentage increase = ' + str(percentage_increase) + ' %\n')
         details_file_handle.write('\ntime for encryption = ' + str((end-start)*1000) + ' milliseconds\n')
         details_file_handle.write('\ninput data in bits\n' + input_data)
         details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
@@ -179,8 +278,8 @@ class RsaObject(object):
         details_file_handle = open('details.txt', 'w')
         details_file_handle.write('length of input data = ' + str(len(input_data)) + ' bits\n')
         details_file_handle.write('length of encrypted data = ' + str(len(encrypted_data)) + ' bits\n')
-        percentage_increase = (len(encrypted_data) - len(input_comp_data)) * 100 / len(input_comp_data)
-        details_file_handle.write('percentage increase = ' + str(percentage_increase) + '%\n')
+        percentage_increase = (len(encrypted_data) - len(input_data)) * 100 / len(input_data)
+        details_file_handle.write('percentage increase = ' + str(percentage_increase) + ' %\n')
         details_file_handle.write('\ntime for encryption = ' + str((end - start) * 1000) + ' milliseconds\n')
         details_file_handle.write('\ninput compressed data in bits\n' + input_comp_data)
         details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
@@ -241,6 +340,85 @@ class RsaObject(object):
 
 
 a = RsaObject(128)
-a.aug_encrypt('input.txt')
+
+filename_str = 'SampleTextFile_{}kB.txt'
+details_dict = {}
+i = 0
+print('RSA: ')
+while i <= 3:
+    filename = filename_str.format(10**i)
+    a.encrypt(filename)
+    a.decrypt('encrypted_data_binary.txt')
+    file_handle = open('details.txt', 'r')
+    details_file_data = file_handle.read()
+    file_handle.close()
+    local_dict = {}
+    details_file_data = details_file_data.split('\n')
+    local_dict['encryption_time'] = float((details_file_data[4].split(' '))[4])
+    local_dict['decryption_time'] = float((details_file_data[13]).split(' ')[4])
+    local_dict['input_data_size'] = float((details_file_data[0]).split(' ')[5])
+    local_dict['encrypted_data_size'] = float((details_file_data[1]).split(' ')[5])
+    local_dict['percentage_increase'] = float((details_file_data[2]).split(' ')[3])
+    details_dict[str(10**i) + 'kB'] = local_dict
+    print(filename)
+    print(local_dict)
+    i += 1
+
+details_aug_dict = {}
+i = 0
+print('\nAugmented RSA: ')
+while i <= 3:
+    filename = filename_str.format(10**i)
+    a.aug_encrypt(filename)
+    a.aug_decrypt('encrypted_data_binary.txt')
+    file_handle = open('details.txt', 'r')
+    details_file_data = file_handle.read()
+    file_handle.close()
+    local_dict = {}
+    details_file_data = details_file_data.split('\n')
+    local_dict['encryption_time'] = float((details_file_data[4].split(' '))[4])
+    local_dict['decryption_time'] = float((details_file_data[13]).split(' ')[4])
+    local_dict['input_data_size'] = float((details_file_data[0]).split(' ')[5])
+    local_dict['encrypted_data_size'] = float((details_file_data[1]).split(' ')[5])
+    local_dict['percentage_increase'] = float((details_file_data[2]).split(' ')[3])
+    details_aug_dict[str(10**i) + 'kB'] = local_dict
+    print(filename)
+    print(local_dict)
+    i += 1
+
+plot_encryption_decryption_details_1(details_dict, details_aug_dict)
+plot_encryption_decryption_details_2(details_dict, details_aug_dict)
+
+a.encrypt('Sample_FOBtest.txt')
+a.decrypt('encrypted_data_binary.txt')
+
+file_handle = open('encrypted_data_binary.txt', 'r')
+file_content = file_handle.read()
+file_handle.close()
+new_binary_data = ''
+i=0
+while i < len(file_content):
+    new_binary_data += (file_content[i:i+128] + '\n')
+    i += 128
+file_handle = open('encrypted_data_binary_block.txt', 'w')
+file_handle.write(new_binary_data)
+file_handle.close()
+
+input('\n\ncontinue:')
+
+a.aug_encrypt('Sample_FOBtest.txt')
 a.aug_decrypt('encrypted_data_binary.txt')
-exit()
+
+file_handle = open('encrypted_data_binary.txt', 'r')
+file_content = file_handle.read()
+file_handle.close()
+new_binary_data = ''
+i=0
+while i < len(file_content):
+    new_binary_data += (file_content[i:i+128] + '\n')
+    i += 128
+file_handle = open('encrypted_data_binary_block.txt', 'w')
+file_handle.write(new_binary_data)
+file_handle.close()
+
+
