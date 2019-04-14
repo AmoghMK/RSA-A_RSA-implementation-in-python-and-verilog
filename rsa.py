@@ -1,6 +1,7 @@
 from random import getrandbits
 from time import clock
 from huff import *
+import json
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
 
@@ -54,18 +55,27 @@ def aug_read_file(file_name):
     file_handle = open(file_name, 'r')
     file_content = file_handle.read()
     file_handle.close()
-    return huffman_compress(file_content)
+    binary, header = huffman_compress(file_content)
+    header_binary = ''
+    for x in json.dumps(header):
+        x_bin = format(ord(x), 'b')
+        header_binary += '0' * (7 - len(x_bin)) + x_bin
+    return binary, header_binary
 
 
-def write_file(file_name, data):
+
+def write_file(file_name, data, write_flag=True):
     data_to_write = ''
     i = 0
     while i < len(data):
         data_to_write += chr(int(data[i:i+7], 2))
         i += 7
-    file_handle = open(file_name, 'w')
-    file_handle.write(data_to_write)
-    file_handle.close()
+    if write_flag:
+        file_handle = open(file_name, 'w')
+        file_handle.write(data_to_write)
+        file_handle.close()
+    else:
+        return data_to_write
 
 
 def plot_encryption_decryption_details_1(details_dict, details_aug_dict):
@@ -249,40 +259,56 @@ class RsaObject(object):
         details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
         details_file_handle.close()
 
-    def aug_encrypt(self, file_name):
+    def aug_encrypt(self, file_name, randomization=True):
         input_data = read_file(file_name)
         start = clock()
-        input_comp_data, self.comp_keys = aug_read_file(file_name)
-        encrypted_data = ''
+        input_bin_data, input_header_data = aug_read_file(file_name)
+        encrypted_header_data = ''
         i = 0
-        r = self.e
-        while i < len(input_comp_data)-self.n_length:
-            M = int(input_comp_data[i:i + self.n_length], 2)
-            M = M ^ r
+        while i < len(input_header_data) - self.n_length:
+            M = int(input_header_data[i:i + self.n_length], 2)
             i = i + self.n_length
-            C = pow(M, self.e, self.n)
-            r = C >> (self.length-self.n_length)
+            C = format(pow(M, self.e, self.n), 'b')
+            encrypted_header_data += '0' * (self.length - len(C)) + C
+        M = int(input_header_data[i:], 2)
+        self.spill_over_header = len(input_header_data) - i
+        C = format(pow(M, self.e, self.n), 'b')
+        encrypted_header_data += '0' * (self.length - len(C)) + C
+        if randomization:
+            randomized_binary_data = ''
+            r = self.e
+            i = 0
+            while i < len(input_bin_data)-self.n_length:
+                M = int(input_bin_data[i:i + self.n_length], 2)
+                C = M ^ r
+                i = i + self.n_length
+                r = C
+                C = format(C, 'b')
+                randomized_binary_data += '0' * (self.length - len(C)) + C
+            M = int(input_bin_data[i:], 2)
+            C = M ^ r
+            self.spill_over_binary = len(input_bin_data)-i
             C = format(C, 'b')
-            encrypted_data += '0' * (self.length - len(C)) + C
-        M = int(input_comp_data[i:], 2)
-        M = M ^ r
-        self.spill_over = len(input_comp_data)-i
-        C = pow(M, self.e, self.n)
-        C = format(C, 'b')
-        encrypted_data += '0' * (self.length - len(C)) + C
+            randomized_binary_data += '0' * (self.length - len(C)) + C
+        else:
+            randomized_binary_data = input_bin_data
         end = clock()
-        write_file('encrypted_data.txt', encrypted_data)
-        encrypted_file_handle = open('encrypted_data_binary.txt', 'w')
-        encrypted_file_handle.write(encrypted_data)
+        write_file('encrypted_header_data.txt', encrypted_header_data)
+        encrypted_file_handle = open('encrypted_header_data_binary.txt', 'w')
+        encrypted_file_handle.write(encrypted_header_data)
+        encrypted_file_handle.close()
+        write_file('randomized_binary_data.txt', randomized_binary_data)
+        encrypted_file_handle = open('randomized_binary_data_binary.txt', 'w')
+        encrypted_file_handle.write(randomized_binary_data)
         encrypted_file_handle.close()
         details_file_handle = open('details.txt', 'w')
         details_file_handle.write('length of input data = ' + str(len(input_data)) + ' bits\n')
-        details_file_handle.write('length of encrypted data = ' + str(len(encrypted_data)) + ' bits\n')
-        percentage_increase = (len(encrypted_data) - len(input_data)) * 100 / len(input_data)
+        details_file_handle.write('length of encrypted data = ' + str(len(encrypted_header_data + randomized_binary_data)) + ' bits\n')
+        percentage_increase = (len(encrypted_header_data + randomized_binary_data) - len(input_data)) * 100 / len(input_data)
         details_file_handle.write('percentage increase = ' + str(percentage_increase) + ' %\n')
         details_file_handle.write('\ntime for encryption = ' + str((end - start) * 1000) + ' milliseconds\n')
-        details_file_handle.write('\ninput compressed data in bits\n' + input_comp_data)
-        details_file_handle.write('\nencrypted data in bits\n' + encrypted_data)
+        details_file_handle.write('\ninput header and binary data in bits\n' + input_header_data + '\t' + input_bin_data)
+        details_file_handle.write('\nencrypted header and randomized binary data in bits\n' + encrypted_header_data + '\t' + randomized_binary_data)
         details_file_handle.close()
 
     def decrypt(self, file_name):
@@ -307,39 +333,58 @@ class RsaObject(object):
         details_file_handle.write('\ndecrypted data in bits\n' + decrypted_data)
         details_file_handle.write('\n\ntime for decryption = ' + str((end - start)*1000) + ' milliseconds\n')
 
-    def aug_decrypt(self, file_name):
-        file_handle = open(file_name, 'r')
-        encrypted_data = file_handle.read()
+    def aug_decrypt(self, file_names, randomization=True):
+        bin_data_file_name, header_data_file_name = file_names.split(', ')
+        file_handle = open(bin_data_file_name, 'r')
+        randomized_binary_data = file_handle.read()
+        file_handle.close()
+        file_handle = open(header_data_file_name, 'r')
+        encrypted_header_data = file_handle.read()
         file_handle.close()
         start = clock()
-        decrypted_data = ''
-        i = len(encrypted_data)
-        while i > 0:
-            C = int(encrypted_data[i-self.length:i], 2)
-            i = i - self.length
-            M = pow(C, self.d, self.n)
-            if i == 0:
-                r = self.e
-            else:
-                r = int(encrypted_data[i-self.length:i], 2) >> (self.length-self.n_length)
-            M = M ^ r
-            M = format(M, 'b')
-            if len(decrypted_data) != 0:
+        if randomization:
+            derandomized_binary_data = ''
+            i = len(randomized_binary_data)
+            while i > 0:
+                C = int(randomized_binary_data[i - self.length:i], 2)
+                i = i - self.length
+                if i == 0:
+                    r = self.e
+                else:
+                    r = int(randomized_binary_data[i-self.length:i], 2)
+                M = C ^ r
+                M = format(M, 'b')
+                if len(derandomized_binary_data) != 0:
+                    M = '0' * (self.n_length - len(M)) + M
+                else:
+                    M = '0' * (self.spill_over_binary - len(M)) + M
+                derandomized_binary_data = M + derandomized_binary_data
+        else:
+            derandomized_binary_data = randomized_binary_data
+        decrypted_header_data = ''
+        i = 0
+        while i < len(encrypted_header_data):
+            C = int(encrypted_header_data[i:i + self.length], 2)
+            i = i + self.length
+            M = format(pow(C, self.d, self.n), 'b')
+            if i != len(encrypted_header_data):
                 M = '0' * (self.n_length - len(M)) + M
             else:
-                M = '0' * (self.spill_over - len(M)) + M
-            decrypted_data = M + decrypted_data
-        decrypted_data_decompressed = huffman_decompress(decrypted_data, self.comp_keys)
+                M = '0' * (self.spill_over_header - len(M)) + M
+            decrypted_header_data += M
+        decrypted_header_data = write_file('dummy.txt', decrypted_header_data, False)
+        decrypted_header_data = json.loads(decrypted_header_data)
+        decrypted_data_decompressed = huffman_decompress(derandomized_binary_data, decrypted_header_data)
         end = clock()
         file_handle = open('decrypted_data.txt', 'w')
         file_handle.write(decrypted_data_decompressed)
         file_handle.close()
         details_file_handle = open('details.txt', 'a')
-        details_file_handle.write('\ndecrypted compressed data in bits\n' + decrypted_data)
+        details_file_handle.write('\nderandomized compressed data in bits\n' + derandomized_binary_data)
         details_file_handle.write('\n\ntime for decryption = ' + str((end - start) * 1000) + ' milliseconds\n')
 
 
-a = RsaObject(128)
+a = RsaObject(2048)
 
 filename_str = 'SampleTextFile_{}kB.txt'
 details_dict = {}
@@ -367,10 +412,11 @@ while i <= 3:
 details_aug_dict = {}
 i = 0
 print('\nAugmented RSA: ')
+random_flag = False
 while i <= 3:
     filename = filename_str.format(10**i)
-    a.aug_encrypt(filename)
-    a.aug_decrypt('encrypted_data_binary.txt')
+    a.aug_encrypt(filename, random_flag)
+    a.aug_decrypt('randomized_binary_data_binary.txt, encrypted_header_data_binary.txt', random_flag)
     file_handle = open('details.txt', 'r')
     details_file_data = file_handle.read()
     file_handle.close()
@@ -389,6 +435,8 @@ while i <= 3:
 plot_encryption_decryption_details_1(details_dict, details_aug_dict)
 plot_encryption_decryption_details_2(details_dict, details_aug_dict)
 
+a = RsaObject(128)
+
 a.encrypt('Sample_FOBtest.txt')
 a.decrypt('encrypted_data_binary.txt')
 
@@ -396,7 +444,7 @@ file_handle = open('encrypted_data_binary.txt', 'r')
 file_content = file_handle.read()
 file_handle.close()
 new_binary_data = ''
-i=0
+i = 0
 while i < len(file_content):
     new_binary_data += (file_content[i:i+128] + '\n')
     i += 128
@@ -407,13 +455,13 @@ file_handle.close()
 input('\n\ncontinue:')
 
 a.aug_encrypt('Sample_FOBtest.txt')
-a.aug_decrypt('encrypted_data_binary.txt')
+a.aug_decrypt('randomized_binary_data_binary.txt, encrypted_header_data_binary.txt')
 
-file_handle = open('encrypted_data_binary.txt', 'r')
+file_handle = open('randomized_binary_data_binary.txt', 'r')
 file_content = file_handle.read()
 file_handle.close()
 new_binary_data = ''
-i=0
+i = 0
 while i < len(file_content):
     new_binary_data += (file_content[i:i+128] + '\n')
     i += 128
