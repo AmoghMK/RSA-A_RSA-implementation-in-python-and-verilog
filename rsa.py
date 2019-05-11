@@ -546,9 +546,105 @@ def plot_encryption_decryption_details_4(details_dict, details_aug_dict):
     plt.xlabel('key length (in bits)')
     plt.show()
 
-plot_encryption_decryption_details_3(details_dict, details_aug_dict)
-plot_encryption_decryption_details_4(details_dict, details_aug_dict)
+# plot_encryption_decryption_details_3(details_dict, details_aug_dict)
+# plot_encryption_decryption_details_4(details_dict, details_aug_dict)
 
+encryption_time_list = []
+decryption_time_list = []
+aug_encryption_time_list = []
+aug_decryption_time_list = []
+size_list = []
+tick_list = []
+key_size = 512
+i = 0
+while key_size <= 4096:
+    encryption_time_list.append(details_dict[str(key_size)]['encryption_time'])
+    decryption_time_list.append(details_dict[str(key_size)]['decryption_time'])
+    aug_encryption_time_list.append(details_aug_dict[str(key_size)]['encryption_time'])
+    aug_decryption_time_list.append(details_aug_dict[str(key_size)]['decryption_time'])
+    size_list.append(key_size)
+    tick_list.append(i)
+    key_size *= 2
+    i += 1
+plt.subplot(2, 2, 1)
+plt.plot(encryption_time_list, marker='o', label='RSA')
+plt.plot(aug_encryption_time_list, marker='o', label='A-RSA')
+plt.title('Time for encryption')
+plt.legend(loc=2)
+plt.xticks(tick_list, size_list)
+plt.ylabel('time (in ms)')
+plt.xlabel('key length (in bits)')
+plt.subplot(2, 2, 2)
+# plt.plot(size_list, encryption_time_list, marker='o', label='RSA')
+# plt.plot(size_list, aug_encryption_time_list, marker='o', label='A-RSA')
+# plt.title('Time for encryption')
+# plt.legend(loc=2)
+# plt.ylabel('time (in ms)')
+# plt.xlabel('key length (in bits)')
+# plt.subplot(2, 2, 3)
+plt.plot(decryption_time_list, marker='o', label='RSA')
+plt.plot(aug_decryption_time_list, marker='o', label='A-RSA')
+plt.title('Time for decryption')
+plt.legend(loc=2)
+plt.xticks(tick_list, size_list)
+plt.ylabel('time (in ms)')
+plt.xlabel('key length (in bits)')
+# plt.subplot(2, 2, 4)
+# plt.plot(size_list, decryption_time_list, marker='o', label='RSA')
+# plt.plot(size_list, aug_decryption_time_list, marker='o', label='A-RSA')
+# plt.title('Time for decryption')
+# plt.legend(loc=2)
+# plt.ylabel('time (in ms)')
+# plt.xlabel('key length (in bits)')
+# plt.show()
+
+input_data_size_list = []
+encrypted_data_size_list = []
+percentage_increase_list = []
+aug_input_data_size_list = []
+aug_encrypted_data_size_list = []
+aug_percentage_increase_list = []
+size_list = []
+tick_list = []
+key_size = 512
+i = 0
+while key_size <= 4096:
+    input_data_size_list.append(details_dict[str(key_size)]['input_data_size'])
+    encrypted_data_size_list.append(details_dict[str(key_size)]['encrypted_data_size'])
+    percentage_increase_list.append(details_dict[str(key_size)]['percentage_increase'])
+    aug_input_data_size_list.append(details_aug_dict[str(key_size)]['input_data_size'])
+    aug_encrypted_data_size_list.append(details_aug_dict[str(key_size)]['encrypted_data_size'])
+    aug_percentage_increase_list.append(details_aug_dict[str(key_size)]['percentage_increase'])
+    size_list.append(key_size)
+    tick_list.append(i)
+    key_size *= 2
+    i += 1
+plt.subplot(2, 2, 3)
+# plt.plot(size_list, input_data_size_list, marker='o', label='input')
+# plt.plot(size_list, encrypted_data_size_list, marker='o', label='encrypted-RSA')
+# plt.plot(size_list, aug_encrypted_data_size_list, marker='o', label='encrypted-A-RSA')
+# plt.title('Size of input and encrypted files')
+# plt.legend(loc=5)
+# plt.ylabel('size (in bits)')
+# plt.xlabel('key length (in bits)')
+# plt.subplot(2, 2, 2)
+plt.plot(input_data_size_list, marker='o', label='input')
+plt.plot(encrypted_data_size_list, marker='o', label='encrypted-RSA')
+plt.plot(aug_encrypted_data_size_list, marker='o', label='encrypted-A-RSA')
+plt.title('Size of input and encrypted files')
+plt.legend(loc=5)
+plt.xticks(tick_list, size_list)
+plt.ylabel('size (in bits)')
+plt.xlabel('key length (in bits)')
+plt.subplot(2, 2, 4)
+plt.plot(percentage_increase_list, marker='o', label='RSA')
+plt.plot(aug_percentage_increase_list, marker='o', label='A-RSA')
+plt.title('Percentage increase in size from input to encrypted data')
+plt.legend(loc=5)
+plt.xticks(tick_list, size_list)
+plt.ylabel('Percentage increase (%)')
+plt.xlabel('key length (in bits)')
+plt.show()
 # a = RsaObject(2048)
 #
 # filename_str = 'SampleTextFile_{}kB.txt'
